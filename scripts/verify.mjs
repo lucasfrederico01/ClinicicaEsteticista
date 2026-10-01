@@ -1,0 +1,52 @@
+import { chromium } from '@playwright/test';
+import AxeBuilder from '@axe-core/playwright';
+import fs from 'node:fs/promises';
+const browser=await chromium.launch({channel:'chrome',headless:true});
+const context=await browser.newContext(); const page=await context.newPage();
+const errors=[];page.on('pageerror',e=>errors.push(e.message));
+await fs.mkdir('test-results',{recursive:true});
+await page.goto('http://127.0.0.1:3000',{waitUntil:'networkidle'});
+await page.getByRole('button',{name:'Somente essenciais',exact:true}).click();
+for(const width of [360,768,1024,1440]){
+ await page.setViewportSize({width,height:1000});await page.waitForTimeout(300); await page.locator('.hero-photo img').evaluate(i=>i.decode());
+ const overflow=await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth);
+ console.log('viewport',width,'overflow',overflow);
+ if(overflow)throw new Error('Horizontal overflow at '+width);
+ await page.screenshot({path:`test-results/${width}.png`,fullPage:true});
+}
+const images=await page.locator('img').evaluateAll(imgs=>imgs.map(i=>({src:i.getAttribute('src'),loaded:i.complete&&i.naturalWidth>0})));
+console.log('image count',images.length);
+await page.getByRole('button',{name:'Corporal',exact:true}).click();
+if(await page.locator('.result-card').count()!==2)throw Error('Filter failed');
+await page.locator('.result-card').first().click();
+await page.keyboard.press('ArrowRight');
+console.log('lightbox',await page.locator('.lightbox-controls span').textContent());
+await page.keyboard.press('Escape');
+if(await page.locator('dialog').isVisible())throw Error('Escape failed');
+await page.getByRole('tab',{name:'Rejuvenescimento'}).click();
+if(await page.locator('.treatment-card').count()!==4)throw Error('Tabs failed');
+await page.getByRole('button',{name:'Saiba mais sobre Toxina botulínica',exact:true}).click();
+await page.keyboard.press('Escape');
+await page.getByText('Como saber qual tratamento é indicado para mim?',{exact:true}).click();
+await page.getByLabel('Seu nome',{exact:true}).fill('Teste de interface');
+await page.getByLabel('WhatsApp com DDD').fill('41999999999');
+await page.getByLabel('Tratamento de interesse').selectOption('Harmonização facial');
+await page.locator('input[name=privacy]').check();
+await page.getByRole('button',{name:'Preparar mensagem'}).click();
+const prepared=await page.getByRole('link',{name:'Continuar no WhatsApp'}).getAttribute('href');
+if(!prepared?.startsWith('https://wa.me/554197763995?text='))throw Error('WhatsApp failed');
+await page.setViewportSize({width:360,height:800});await page.evaluate(()=>window.scrollTo(0,0));
+await page.getByRole('button',{name:'Abrir menu',exact:true}).click();
+await page.locator('#mobile-nav').getByRole('link',{name:'Tratamentos',exact:true}).click();
+if(await page.locator('#mobile-nav').count())throw Error('Mobile menu did not close');
+await page.getByRole('button',{name:'Cookies',exact:true}).click();
+await page.getByRole('button',{name:'Aceitar opcionais',exact:true}).click();
+console.log('consent',await page.evaluate(()=>localStorage.getItem('gn-consent')));
+const accessibility=await new AxeBuilder({page}).withTags(['wcag2a','wcag2aa','wcag21aa']).analyze();
+console.log('AXE',JSON.stringify(accessibility.violations.map(v=>({id:v.id,nodes:v.nodes.map(n=>({target:n.target,summary:n.failureSummary}))})),null,2));
+console.log('page errors',errors);
+await fs.writeFile('test-results/report.json',JSON.stringify({errors,violations:accessibility.violations,images},null,2));
+await browser.close();
+if(errors.length||accessibility.violations.length)process.exitCode=1;
+
+
