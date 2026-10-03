@@ -178,6 +178,12 @@ export default function ClinicSite() {
   }, [modal])
   useEffect(() => {
     if (!menu) return
+    const previousOverflow = document.body.style.overflow
+    document.body.style.overflow = "hidden"
+    const onResize = () => {
+      if (window.innerWidth > 900) setMenu(false)
+    }
+    window.addEventListener("resize", onResize)
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") {
         setMenu(false)
@@ -199,7 +205,11 @@ export default function ClinicSite() {
       }
     }
     document.addEventListener("keydown", onKey)
-    return () => document.removeEventListener("keydown", onKey)
+    return () => {
+      document.removeEventListener("keydown", onKey)
+      window.removeEventListener("resize", onResize)
+      document.body.style.overflow = previousOverflow
+    }
   }, [menu])
   const close = () => {
     setLightbox(null)
@@ -255,7 +265,7 @@ export default function ClinicSite() {
       <a className="skip" href="#conteudo">
         Pular para o conteúdo
       </a>
-      <header className={`header ${scrolled || menu ? "solid" : ""}`}>
+      <header className={`header ${scrolled || menu ? "solid" : ""} ${menu ? "menu-open" : ""}`}>
         <div className="header-inner">
           <Brand />
           <nav className="desktop-nav" aria-label="Navegação principal">
@@ -277,6 +287,10 @@ export default function ClinicSite() {
             {menu ? <X /> : <Menu />}
           </button>
         </div>
+        {menu && <button className="menu-backdrop" tabIndex={-1} aria-label="Fechar menu lateral" onClick={() => {
+          setMenu(false)
+          document.getElementById("menu-toggle")?.focus()
+        }} />}
         {menu && (
           <nav
             ref={mobileNav}
