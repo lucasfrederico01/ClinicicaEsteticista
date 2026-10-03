@@ -1847,17 +1847,60 @@ footer {
   color: #79634f;
 }
 
-@keyframes gentle-entrance {
-  from { opacity: 0; transform: translateY(12px); }
-  to { opacity: 1; transform: translateY(0); }
+/* Start after hydration so the hero entrance is not spent during initial loading. */
+@keyframes hero-copy-enter {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: translateX(0); }
 }
-@media (prefers-reduced-motion: no-preference) {
-  .hero-content { animation: gentle-entrance 650ms ease-out both; }
-  @supports (animation-timeline: view()) {
-    .section-heading, .center-heading, .about-copy {
-      animation: gentle-entrance linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 22%;
-    }
+@keyframes hero-photo-enter {
+  from { opacity: 0; transform: translateX(28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes opacity-enter {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.hero[data-entrance="ready"] .hero-content > * {
+  animation: hero-copy-enter 1000ms ease-in-out both;
+  animation-delay: var(--hero-delay, 0ms);
+}
+.hero-content > :nth-child(2) { --hero-delay: 100ms; }
+.hero-content > :nth-child(3) { --hero-delay: 200ms; }
+.hero-content > :nth-child(4) { --hero-delay: 300ms; }
+.hero-content > :nth-child(5) { --hero-delay: 400ms; }
+.hero[data-entrance="ready"] .hero-photo {
+  animation: hero-photo-enter 1200ms ease-in-out both;
+}
+[data-reveal] {
+  transition: opacity 1000ms ease-in-out, transform 1000ms cubic-bezier(.22, 1, .36, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+[data-reveal="pending"] { opacity: 0; transform: translateY(28px); }
+[data-reveal="visible"], [data-reveal]:focus-within { opacity: 1; transform: none; }
+/* A subtle fade remains available without spatial movement, like the reference. */
+@media (prefers-reduced-motion: reduce) {
+  [data-reveal] {
+    transform: none !important;
+    transition: opacity 1000ms ease-in-out !important;
+    transition-delay: var(--reveal-delay, 0ms) !important;
   }
+  .hero[data-entrance="ready"] .hero-content > *,
+  .hero[data-entrance="ready"] .hero-photo {
+    animation: opacity-enter 1000ms ease-in-out both !important;
+    animation-delay: var(--hero-delay, 0ms) !important;
+    transform: none !important;
+  }
+}
+[data-reveal]:focus-within {
+  transition: none !important;
+}
+.hero[data-entrance="ready"] .hero-content > :focus-within {
+  animation: none !important;
+  opacity: 1;
+  transform: none;
+}
+@media print {
+  [data-reveal] { opacity: 1 !important; transform: none !important; }
+  .hero[data-entrance="ready"] .hero-content > *,
+  .hero[data-entrance="ready"] .hero-photo { animation: none !important; }
 }

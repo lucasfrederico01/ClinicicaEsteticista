@@ -27,6 +27,7 @@ import {
   ZoomIn,
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { useScrollReveal } from "@/hooks/use-scroll-reveal"
 import {
   clinic,
   whatsappUrl,
@@ -125,6 +126,7 @@ const editorial = [1, 2, 3, 4, 5, 6].map((n) => ({
   ][n - 1],
 }))
 export default function ClinicSite() {
+  const [openFaq, setOpenFaq] = useState<string | null>(null)
   const [scrolled, setScrolled] = useState(false),
     [menu, setMenu] = useState(false),
     [category, setCategory] = useState(0),
@@ -145,6 +147,7 @@ export default function ClinicSite() {
     started = useRef(0),
     mobileNav = useRef<HTMLElement>(null)
   const modal = !!(lightbox || treatment || legal)
+  useScrollReveal(category, filter)
   useEffect(() => {
     const scroll = () => setScrolled(window.scrollY > 35)
     scroll()
@@ -730,8 +733,11 @@ export default function ClinicSite() {
             </div>
             <div className="accordion">
               {faqs.map(([q, a]) => (
-                <details key={q}>
-                  <summary>
+                <details key={q} open={openFaq === q}>
+                  <summary onClick={(event) => {
+                    event.preventDefault()
+                    setOpenFaq(current => current === q ? null : q)
+                  }}>
                     {q}
                     <Plus size={18} />
                   </summary>
